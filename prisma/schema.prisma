@@ -1,0 +1,261 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===================================
+// MODELOS DE CONFIGURAÇÃO E DADOS
+// ===================================
+
+model GuildConfig {
+  id                                String   @id @default(cuid())
+  guildId                           String   @unique
+
+  // Módulo Registro
+  registroEmbedTitle                String?  @default("Formulário de Registro")
+  registroEmbedDesc                 String?  @default("Clique no botão abaixo para iniciar seu registro.")
+  registroEmbedImage                String?
+  registroEmbedThumb                String?
+  recrutadorRoleId                  String?
+  membroRoleId                      String?
+  approvedTag                       String?
+  interactionChannelId              String?
+  logsChannelId                     String?
+
+  // Módulo Hierarquia
+  hierarchyChannelId                String?
+  hierarchyEmbedTitle               String?  @default("Hierarquia de Cargos - Visionários")
+  hierarchyEmbedColor               String?  @default("#FFFFFF")
+  hierarchyEmbedThumbnail           String?
+  hierarchyExcludedRoles            String?
+
+  // Módulo Finanças
+  salesLogChannelId                 String?
+  salesPanelImageUrl                String?
+  profitGoal                        Int?
+
+  // Módulo Sentinela (Relatórios)
+  reportChannelId                   String?
+  reportEnabled                     Boolean  @default(false)
+  reportDayOfWeek                   Int?
+  reportTime                        String?
+  lastReportSent                    DateTime?
+
+  // Módulo Depuração (Prune)
+  pruneImmunityRoleId               String?
+  pruneInviteLink                   String?
+
+  // Módulo Operações
+  operationsChannelId               String?
+  operationsDefaultThumbnailUrl     String?
+  operationsDefaultImageUrl         String?
+
+  // Módulo Parcerias
+  partnershipChannelId              String?
+  partnershipMessageId              String?
+  partnershipDefaultThumbnailUrl    String?
+  partnershipDefaultImageUrl        String?
+
+  // Módulo Changelog
+  changelogChannelId                String?
+  changelogMessageId                String?
+
+  // Módulo Justiça v2.1
+  punishmentLogChannelId            String?  @map("punishment_log_channel_id")
+  lastPunishmentCaseId              Int      @default(0) @map("last_punishment_case_id")
+
+  // =========================================================
+  // NOVOS CAMPOS PARA O MÓDULO DE SORTEIOS v2.3
+  // =========================================================
+  giveawayLogChannelId              String?  @map("giveaway_log_channel_id")
+  giveawayEmbedColor                String?  @default("#5865F2") @map("giveaway_embed_color")
+  giveawayWinnerEmbedColor          String?  @default("#2ECC71") @map("giveaway_winner_embed_color")
+  giveawayFinishedEmbedColor        String?  @default("#99AAB5") @map("giveaway_finished_embed_color")
+  giveawayDefaultRoleId             String?  @map("giveaway_default_role_id")
+  giveawayDefaultImageUrl           String?  @map("giveaway_default_image_url")
+  giveawayDefaultThumbnailUrl       String?  @map("giveaway_default_thumbnail_url")
+}
+
+model Application {
+  id           String   @id @default(cuid())
+  guildId      String
+  userId       String
+  rpName       String
+  gameId       String
+  recrutadorId String?
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Item {
+  id                  String @id @default(cuid())
+  guildId             String
+  name                String
+  category            String
+  price               Int
+  partnershipDiscount Int    @default(50)
+  @@unique([guildId, name])
+}
+
+model Sale {
+  id             String   @id @default(cuid())
+  guildId        String
+  sellerId       String
+  buyerInfo      String
+  itemName       String
+  quantity       Int
+  unitPrice      Int
+  totalPrice     Int
+  wasPartnership Boolean
+  isDeposited    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model Investment {
+  id          String   @id @default(cuid())
+  guildId     String
+  amount      Int
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Blacklist {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  authorId  String
+  reason    String
+  createdAt DateTime @default(now())
+  @@unique([guildId, userId])
+}
+
+model RoleTag {
+  id      String @id @default(cuid())
+  guildId String
+  roleId  String @unique
+  tag     String
+}
+
+model Operation {
+  id              String        @id @default(cuid())
+  guildId         String
+  title           String
+  description     String
+  status          String        @default("AGENDADA")
+  scheduledAt     DateTime
+  authorId        String
+  channelId       String
+  messageId       String        @unique
+  maxParticipants Int
+  outcome         String?
+  participants    Participant[]
+}
+
+model Participant {
+  id          String    @id @default(cuid())
+  operationId String
+  operation   Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  userId      String
+  status      String
+  @@unique([operationId, userId])
+}
+
+model CustomEmbed {
+  id        String @id @default(cuid())
+  guildId   String
+  channelId String
+  messageId String @unique
+}
+
+model Partnership {
+  id                String  @id @default(cuid())
+  guildId           String
+  name              String  @unique
+  description       String
+  imageUrl          String?
+  inviteUrl         String?
+  category          String  @default("Geral")
+  uniformImageUrl   String?
+}
+
+model ChangelogEntry {
+  id          String   @id @default(cuid())
+  guildId     String
+  version     String
+  title       String
+  description String
+  authorId    String
+  createdAt   DateTime @default(now())
+}
+
+model ModuleStatus {
+  id          String  @id @default(cuid())
+  guildId     String
+  name        String
+  description String?
+  emoji       String?
+  status      String
+  @@unique([name, guildId])
+}
+
+model Rule {
+  id                       String       @id @default(cuid())
+  guildId                  String
+  ruleCode                 String
+  description              String
+  defaultPunishmentType    PunishmentType
+  defaultDurationMinutes   Int?
+  temporaryRoleId          String?
+  punishments              Punishment[]
+}
+
+model Punishment {
+  id                  String           @id @default(cuid())
+  caseId              Int
+  guildId             String
+  userId              String
+  moderatorId         String
+  reason              String
+  proof               String?
+  punishmentMessageId String?
+  createdAt           DateTime         @default(now())
+  expiresAt           DateTime?
+  status              PunishmentStatus @default(ACTIVE)
+  ruleId              String
+  rule                Rule             @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  @@unique([guildId, caseId])
+}
+
+model Giveaway {
+  id              String   @id @default(cuid())
+  guildId         String
+  channelId       String
+  messageId       String   @unique
+  prize           String
+  winnerCount     Int
+  endsAt          DateTime
+  status          String   @default("RUNNING") // RUNNING, ENDED, CANCELED
+  requiredRoleId  String?
+  entrants        String[]
+  winners         String[]
+}
+
+enum PunishmentType {
+  ADVERTENCIA
+  TIMEOUT
+  KICK
+  BAN
+}
+
+enum PunishmentStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
